@@ -290,8 +290,8 @@ function game:draw()
 end
 
 
-function game:sendMove(x, y)
-	local x, y = self.player.x, self.player.y
+function game:sendMove()
+	local x, y = math.floor(self.player.x), math.floor(self.player.y)
 	if self.hosting then
 		self.host:broadcast('p|'..self.timer..' '..x..' '..y)
 	elseif self.peer then
@@ -300,6 +300,11 @@ function game:sendMove(x, y)
 end
 
 function game:sendBullet(x, y, targetX, targetY)
+	x = math.floor(x)
+	y = math.floor(y)
+	targetX = math.floor(targetX)
+	targetY = math.floor(targetY)
+	
 	if self.hosting then
 		self.host:broadcast('b|'..self.timer..' '..x..' '..y..' '..targetX..' '..targetY)
 	elseif self.peer then
