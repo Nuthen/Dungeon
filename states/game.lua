@@ -51,6 +51,9 @@ function game:enter(prev, hosting)
 	
 	self.enemyTween = false
 
+	self.translateX = 0
+	self.translateY = 0
+
 	self.bgQuad = love.graphics.newQuad(0, 0, love.window.getWidth()*2, love.window.getHeight()*2, 64, 64)
     self.bgImage = love.graphics.newImage('img/grid.png')
     self.bgImage:setWrap("repeat")
@@ -70,6 +73,9 @@ function game:update(dt)
 			self.enemyTween = false
 		end)
 	end
+
+	self.translateX = -self.player.x + love.graphics.getWidth()/2
+	self.translateY = -self.player.y + love.graphics.getHeight()/2
 
 
 	if #self.packets > 0 then
@@ -128,7 +134,7 @@ function game:update(dt)
 					local targetX = tonumber(bulletTable[4])
 					local targetY = tonumber(bulletTable[5])
 					
-					table.insert(self.bullets2, Bullet:new(x, y, targetX, targetY))
+					table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
 				end
 				
 			elseif event.type == 'disconnect' then
@@ -183,7 +189,7 @@ function game:update(dt)
 					local targetX = tonumber(bulletTable[4])
 					local targetY = tonumber(bulletTable[5])
 					
-					table.insert(self.bullets2, Bullet:new(x, y, targetX, targetY))
+					table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
 				end
 				
 			elseif event.type == 'disconnect' then
@@ -237,8 +243,8 @@ function game:mousepressed(x, y, mbutton)
 	
 	if self.state == 'run' then
 		if mbutton == 'l' then
-			table.insert(self.bullets, Bullet:new(self.player.x, self.player.y, x, y))
-			self:sendBullet(self.player.x, self.player.y, x, y)
+			table.insert(self.bullets, Bullet:new(self.player.x, self.player.y, x-self.translateX, y-self.translateY))
+			self:sendBullet(self.player.x, self.player.y, x-self.translateX, y-self.translateY)
 		end
 	end
 end
@@ -249,7 +255,7 @@ function game:draw()
 
     love.graphics.draw(self.bgImage, self.bgQuad, -self.player.x, -self.player.y)
 	
-	love.graphics.translate(-self.player.x + love.graphics.getWidth()/2, -self.player.y+love.graphics.getHeight()/2)
+	love.graphics.translate(self.translateX, self.translateY)
 	self.player:draw()
 	love.graphics.translate(0, 0)
 	self.player2:draw()
