@@ -40,14 +40,18 @@ function game:enter(prev, hosting)
 	
 	else -- client setup
 		self.host = enet.host_create()
-		self.server = self.host:connect('69.137.215.69:22122')
-		--self.server = self.host:connect('localhost:22122')
+		--self.server = self.host:connect('69.137.215.69:22122')
+		self.server = self.host:connect('localhost:22122')
 		self.host:compress_with_range_coder()
 		
 		self.timer = 0
 	end
 	
 	self.enemyTween = false
+
+	self.bgQuad = love.graphics.newQuad(0, 0, love.window.getWidth()*2, love.window.getHeight()*2, 64, 64)
+    self.bgImage = love.graphics.newImage('img/grid.png')
+    self.bgImage:setWrap("repeat")
 end
 
 function game:update(dt)
@@ -197,8 +201,13 @@ end
 
 function game:draw()
     love.graphics.setFont(font[48])
+
+
+    love.graphics.draw(self.bgImage, self.bgQuad, -self.player.x, -self.player.y)
 	
+	love.graphics.translate(-self.player.x + love.graphics.getWidth()/2, -self.player.y+love.graphics.getHeight()/2)
 	self.player:draw()
+	love.graphics.translate(0, 0)
 	self.player2:draw()
 	
 	
