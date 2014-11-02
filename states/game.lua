@@ -20,7 +20,7 @@ function game:enter(prev, hosting)
 	
 	self.packets = {}
 	
-	self.timerDelay = 2
+	self.timerDelay = .5
 	
 	if self.hosting then -- server setup
 		self.ip = '*'
@@ -175,7 +175,7 @@ function game:update(dt)
 		dx, dy = self.player:update(dt)
 		
 		if dx ~= 0 or dy ~= 0 then
-			if self.lastSendTimer > .5 then
+			if self.lastSendTimer > .1 then
 				self.lastSendTimer = 0
 				self:sendMove()
 			end
