@@ -20,7 +20,7 @@ function game:enter(prev, hosting)
 	
 	self.packets = {}
 	
-	self.timerDelay = .5
+	self.timerDelay = 2
 	
 	if self.hosting then -- server setup
 		self.ip = '*'
