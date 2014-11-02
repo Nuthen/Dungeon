@@ -76,13 +76,6 @@ function game:update(dt)
 			self.player2.x = x
 			self.player2.y = y
 			table.remove(self.packets, 1)
-		else
-			local timeLeft = timeSent - self.timer-self.timerDelay
-			
-			local speedX = (-self.player2.x - x)/timeLeft
-			local speedY = (-self.player2.y - y)/timeLeft
-			self.player2.x = self.player2.x + speedX*dt
-			self.player2.y = self.player2.y + speedY*dt
 		end
 	end
 	
