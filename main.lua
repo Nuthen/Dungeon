@@ -14,6 +14,7 @@ require 'states.game'
 
 -- entities
 require 'entities.player'
+require 'entities.bullet'
 
 
 function love.load()

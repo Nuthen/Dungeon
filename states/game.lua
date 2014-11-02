@@ -7,6 +7,8 @@ function game:enter(prev, hosting)
 	self.player = Player:new(scrnWidth/2, scrnHeight/2)
 	self.player2 = Player:new(scrnWidth/2, scrnHeight/2)
 	
+	self.bullets = {}
+	self.bullets2 = {}
 	
 	-- networking
 	self.hosting = hosting
@@ -115,6 +117,18 @@ function game:update(dt)
 						self.player2.x = x
 						self.player2.y = y
 					end
+					
+				elseif string.find(event.data, 'b|') == 1 then -- True if it is piece movement data
+					local str = string.gsub(event.data, 'b|', '')
+					local bulletTable = stringToTable(str)
+					
+					local timeSent = tonumber(bulletTable[1])
+					local x = tonumber(bulletTable[2])
+					local y = tonumber(bulletTable[3])
+					local targetX = tonumber(bulletTable[4])
+					local targetY = tonumber(bulletTable[5])
+					
+					table.insert(self.bullets2, Bullet:new(x, y, targetX, targetY))
 				end
 				
 			elseif event.type == 'disconnect' then
@@ -158,6 +172,18 @@ function game:update(dt)
 						self.player2.x = x
 						self.player2.y = y
 					end
+					
+				elseif string.find(event.data, 'b|') == 1 then -- True if it is piece movement data
+					local str = string.gsub(event.data, 'b|', '')
+					local bulletTable = stringToTable(str)
+					
+					local timeSent = tonumber(bulletTable[1])
+					local x = tonumber(bulletTable[2])
+					local y = tonumber(bulletTable[3])
+					local targetX = tonumber(bulletTable[4])
+					local targetY = tonumber(bulletTable[5])
+					
+					table.insert(self.bullets2, Bullet:new(x, y, targetX, targetY))
 				end
 				
 			elseif event.type == 'disconnect' then
@@ -172,9 +198,27 @@ function game:update(dt)
 		dx, dy = self.player:update(dt)
 		
 		if dx ~= 0 or dy ~= 0 then
-			if self.lastSendTimer > .1 then
+			if self.lastSendTimer > .5 then
 				self.lastSendTimer = 0
 				self:sendMove()
+			end
+		end
+		
+		for k, bullet in pairs(self.bullets) do
+			bullet:update(dt)
+		end
+		for k, bullet in pairs(self.bullets2) do
+			bullet:update(dt)
+		end
+		
+		for i = #self.bullets, 1, -1 do
+			if self.bullets[i].destroy then
+				table.remove(self.bullets, i)
+			end
+		end
+		for i = #self.bullets2, 1, -1 do
+			if self.bullets2[i].destroy then
+				table.remove(self.bullets2, i)
 			end
 		end
 	end
@@ -190,6 +234,13 @@ function game:mousepressed(x, y, mbutton)
     if console.mousepressed(x, y, mbutton) then
         return
     end
+	
+	if self.state == 'run' then
+		if mbutton == 'l' then
+			table.insert(self.bullets, Bullet:new(self.player.x, self.player.y, x, y))
+			self:sendBullet(self.player.x, self.player.y, x, y)
+		end
+	end
 end
 
 function game:draw()
@@ -203,12 +254,20 @@ function game:draw()
 	love.graphics.translate(0, 0)
 	self.player2:draw()
 	
+	for k, bullet in pairs(self.bullets) do
+		bullet:draw()
+	end
+	for k, bullet in pairs(self.bullets2) do
+		bullet:draw()
+	end
+	
 	
 	love.graphics.setFont(fontBold[16])
 	
 	love.graphics.setColor(255, 255, 255)
 	love.graphics.print(love.timer.getFPS()..'FPS', 5, 5)
 	
+	love.graphics.print(#self.bullets..' + '..#self.bullets2..' bullets', 75, 5)
 	
 	-- networking
 	if self.hosting then
@@ -237,5 +296,13 @@ function game:sendMove(x, y)
 		self.host:broadcast('p|'..self.timer..' '..x..' '..y)
 	elseif self.peer then
 		self.peer:send('p|'..self.timer..' '..x..' '..y)
+	end
+end
+
+function game:sendBullet(x, y, targetX, targetY)
+	if self.hosting then
+		self.host:broadcast('b|'..self.timer..' '..x..' '..y..' '..targetX..' '..targetY)
+	elseif self.peer then
+		self.peer:send('b|'..self.timer..' '..x..' '..y..' '..targetX..' '..targetY)
 	end
 end
