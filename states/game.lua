@@ -21,6 +21,7 @@ function game:enter(prev, hosting)
 	self.lastSendTimer = 0
 	
 	self.packets = {}
+	self.bulletPackets = {}
 	
 	self.timerDelay = 2
 	
@@ -91,6 +92,20 @@ function game:update(dt)
 		end
 	end
 	
+	if #self.bulletPackets > 0 then
+		local packet = self.bulletPackets[1]
+		local timeSent = packet[1]
+		local x = packet[2]
+		local y = packet[3]
+		local targetX = packet[4]
+		local targetY = packet[5]
+	
+		if self.timer - self.timerDelay > timeSent then
+			table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
+			table.remove(self.bulletPackets, 1)
+		end
+	end
+	
 	-- networking
 	if self.hosting then
 		self.timer = self.timer + dt
@@ -134,7 +149,11 @@ function game:update(dt)
 					local targetX = tonumber(bulletTable[4])
 					local targetY = tonumber(bulletTable[5])
 					
-					table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
+					if self.timer - self.timerDelay <= timeSent then
+						table.insert(self.bulletPackets, {timeSent, x, y, targetX, targetY})
+					else
+						table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
+					end
 				end
 				
 			elseif event.type == 'disconnect' then
@@ -189,7 +208,11 @@ function game:update(dt)
 					local targetX = tonumber(bulletTable[4])
 					local targetY = tonumber(bulletTable[5])
 					
-					table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
+					if self.timer - self.timerDelay <= timeSent then
+						table.insert(self.bulletPackets, {timeSent, x, y, targetX, targetY})
+					else
+						table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
+					end
 				end
 				
 			elseif event.type == 'disconnect' then
