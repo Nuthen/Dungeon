@@ -10,6 +10,8 @@ function game:enter(prev, hosting)
 	self.bullets = {}
 	self.bullets2 = {}
 	
+	self.enemies = {}
+	
 	-- networking
 	self.hosting = hosting
 	
@@ -22,8 +24,10 @@ function game:enter(prev, hosting)
 	
 	self.packets = {}
 	self.bulletPackets = {}
+	self.enemyPackets = {}
+	self.enemyHitPackets = {}
 	
-	self.timerDelay = 2
+	self.timerDelay = .5
 	
 	if self.hosting then -- server setup
 		self.ip = '*'
@@ -40,17 +44,25 @@ function game:enter(prev, hosting)
 		
 		self.lastEvent = nil
 		self.peer = nil
+		
+		
+	
+		self.enemySpawnInterval = 5
+		self.enemySpawnTimer = 0
+		
+		self.enemySendInterval = .5
+		self.lastEnemySendTimer = 0
 	
 	else -- client setup
 		self.host = enet.host_create()
-		--self.server = self.host:connect('69.137.215.69:22122')
-		self.server = self.host:connect('localhost:22122')
+		self.server = self.host:connect('69.137.215.69:22122')
+		--self.server = self.host:connect('localhost:22122')
 		self.host:compress_with_range_coder()
 		
 		self.timer = 0
 	end
 	
-	self.enemyTween = false
+	self.playerTween = false
 
 	self.translateX = 0
 	self.translateY = 0
@@ -61,17 +73,17 @@ function game:enter(prev, hosting)
 end
 
 function game:update(dt)
-	if not self.enemyTween and #self.packets > 0 then
+	if not self.playerTween and #self.packets > 0 then
 		local packet = self.packets[1]
 		local timeSent = packet[1]
 		local x = packet[2]
 		local y = packet[3]
 	
-		self.enemyTween = true
+		self.playerTween = true
 	
 		local timeLeft = math.abs(self.timer-self.timerDelay - timeSent)
 		tween(timeLeft, self.player2, {x = x, y = y}, 'linear', function()
-			self.enemyTween = false
+			self.playerTween = false
 		end)
 	end
 
@@ -103,6 +115,39 @@ function game:update(dt)
 		if self.timer - self.timerDelay > timeSent then
 			table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
 			table.remove(self.bulletPackets, 1)
+		end
+	end
+	
+	-- inefficient
+	for i = #self.enemyPackets, 1, -1 do
+		local packet = self.enemyPackets[i]
+		local timeSent = packet[1]
+		local index = packet[2]
+		local x = packet[3]
+		local y = packet[4]
+	
+		if self.timer - self.timerDelay > timeSent then
+			if not self.enemies[index] then
+				self.enemies[index] = Enemy:new(x, y)
+			else
+				self.enemies[index]:storePacket(timeSent, x, y)
+			end
+			table.remove(self.enemyPackets, i)
+		end
+	end
+	
+	for i = #self.enemyHitPackets, 1, -1 do
+		local packet = self.enemyHitPackets[i]
+		local timeSent = packet[1]
+		local index = packet[2]
+	
+		if self.timer - self.timerDelay > timeSent then
+			if not self.enemies[index] then
+				--self.enemies[index] = Enemy:new(x, y)
+			else
+				self.enemies[index].hit = true
+			end
+			table.remove(self.enemyHitPackets, i)
 		end
 	end
 	
@@ -153,6 +198,23 @@ function game:update(dt)
 						table.insert(self.bulletPackets, {timeSent, x, y, targetX, targetY})
 					else
 						table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
+					end
+					
+				elseif string.find(event.data, 'h|') == 1 then -- True if it is piece movement data
+					local str = string.gsub(event.data, 'h|', '')
+					local hitTable = stringToTable(str)
+					
+					local timeSent = tonumber(hitTable[1])
+					local index = tonumber(hitTable[2])
+					
+					if self.timer - self.timerDelay <= timeSent then
+						table.insert(self.enemyHitPackets, {timeSent, index})
+					else
+						if not self.enemies[index] then
+							--self.enemies[index] = Enemy:new(x, y)
+						else
+							self.enemies[index].hit = true
+						end
 					end
 				end
 				
@@ -213,6 +275,43 @@ function game:update(dt)
 					else
 						table.insert(self.bullets2, Bullet:new(x, y, targetX+self.translateX, targetY+self.translateY))
 					end
+					
+				elseif string.find(event.data, 'e|') == 1 then -- True if it is piece movement data
+					local str = string.gsub(event.data, 'e|', '')
+					local enemyTable = stringToTable(str)
+					
+					local timeSent = tonumber(enemyTable[1])
+					local index = tonumber(enemyTable[2])
+					local x = tonumber(enemyTable[3])
+					local y = tonumber(enemyTable[4])
+					
+					if self.timer - self.timerDelay <= timeSent then
+						table.insert(self.enemyPackets, {timeSent, index, x, y})
+					else
+						if not self.enemies[index] then
+							self.enemies[index] = Enemy:new(x, y)
+						else
+							self.enemies[index].x = x
+							self.enemies[index].y = y
+						end
+					end
+					
+				elseif string.find(event.data, 'h|') == 1 then -- True if it is piece movement data
+					local str = string.gsub(event.data, 'h|', '')
+					local hitTable = stringToTable(str)
+					
+					local timeSent = tonumber(hitTable[1])
+					local index = tonumber(hitTable[2])
+					
+					if self.timer - self.timerDelay <= timeSent then
+						table.insert(self.enemyHitPackets, {timeSent, index})
+					else
+						if not self.enemies[index] then
+							--self.enemies[index] = Enemy:new(x, y)
+						else
+							self.enemies[index].hit = true
+						end
+					end
 				end
 				
 			elseif event.type == 'disconnect' then
@@ -223,6 +322,40 @@ function game:update(dt)
 	
 	
 	if self.state == 'run' then
+		-- host spawns enemies on an interval
+		if self.hosting then
+			self.enemySpawnTimer = self.enemySpawnTimer + dt
+			if self.enemySpawnTimer > self.enemySpawnInterval then
+				self.enemySpawnTimer = 0
+				if self.enemySpawnInterval > 2 then
+					self.enemySpawnInterval = 5 - self.timer/20
+				end
+				
+				local enemy = Enemy:new()
+				table.insert(self.enemies, enemy)
+				
+				self:sendEnemy(#self.enemies, enemy.x, enemy.y)
+			end
+			
+			
+			self.lastEnemySendTimer = self.lastEnemySendTimer + dt
+			
+			for i, enemy in ipairs(self.enemies) do
+				enemy:hostUpdate(dt)
+				if self.lastEnemySendTimer > self.enemySendInterval then
+					self:sendEnemy(i, enemy.x, enemy.y)
+				end
+			end
+			
+			if self.lastEnemySendTimer > self.enemySendInterval then
+				self.lastEnemySendTimer = 0
+			end
+		else
+			for i, enemy in ipairs(self.enemies) do
+				enemy:clientUpdate(dt)
+			end
+		end
+	
 		self.lastSendTimer = self.lastSendTimer + dt
 		dx, dy = self.player:update(dt)
 		
@@ -235,6 +368,7 @@ function game:update(dt)
 		
 		for k, bullet in pairs(self.bullets) do
 			bullet:update(dt)
+			bullet:checkHit()
 		end
 		for k, bullet in pairs(self.bullets2) do
 			bullet:update(dt)
@@ -282,6 +416,10 @@ function game:draw()
 	self.player:draw()
 	love.graphics.translate(0, 0)
 	self.player2:draw()
+	
+	for k, enemy in pairs(self.enemies) do
+		enemy:draw()
+	end
 	
 	for k, bullet in pairs(self.bullets) do
 		bullet:draw()
@@ -338,5 +476,24 @@ function game:sendBullet(x, y, targetX, targetY)
 		self.host:broadcast('b|'..self.timer..' '..x..' '..y..' '..targetX..' '..targetY)
 	elseif self.peer then
 		self.peer:send('b|'..self.timer..' '..x..' '..y..' '..targetX..' '..targetY)
+	end
+end
+
+function game:sendEnemy(index, x, y)
+	x = math.floor(x)
+	y = math.floor(y)
+	
+	if self.hosting then
+		self.host:broadcast('e|'..self.timer..' '..index..' '..x..' '..y)
+	elseif self.peer then
+		self.peer:send('e|'..self.timer..' '..index..' '..x..' '..y)
+	end
+end
+
+function game:sendEnemyHit(index)
+	if self.hosting then
+		self.host:broadcast('h|'..self.timer..' '..index)
+	elseif self.peer then
+		self.peer:send('h|'..self.timer..' '..index)
 	end
 end

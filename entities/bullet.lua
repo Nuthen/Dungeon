@@ -22,10 +22,25 @@ function Bullet:update(dt)
 	if self.y < -self.radius or self.y > love.window.getHeight()+self.radius then
 		self.destroy = true
 	end
-	
 end
 
 function Bullet:draw()
     love.graphics.setColor(255, 255, 255)
 	love.graphics.circle('fill', self.x, self.y, self.radius)
+end
+
+
+function Bullet:checkHit()
+	for i, enemy in ipairs(game.enemies) do
+		if not enemy.hit then
+			if self.x + self.radius >= enemy.x - enemy.width/2 and self.x - self.radius <= enemy.x + enemy.width/2 and self.y + self.radius >= enemy.y - enemy.height/2 and self.y - self.radius <= enemy.y + enemy.height/2 then
+				-- hit
+				enemy.hit = true
+				
+				game:sendEnemyHit(i)
+				self.destroy = true
+				break
+			end
+		end
+	end
 end

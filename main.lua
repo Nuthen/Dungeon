@@ -6,6 +6,7 @@ tween = require 'libs.tween'
 console = require 'libs.console'
 require 'libs.util'
 require 'libs.tablestring'
+require 'libs.generalmath'
 require 'enet'
 
 -- gamestates
@@ -15,6 +16,7 @@ require 'states.game'
 -- entities
 require 'entities.player'
 require 'entities.bullet'
+require 'entities.enemy'
 
 
 function love.load()
