@@ -50,7 +50,7 @@ function game:enter(prev, hosting, connectAddress)
 		self.enemySpawnInterval = 5
 		self.enemySpawnTimer = 0
 		
-		self.enemySendInterval = .5
+		self.enemySendInterval = 1
 		self.lastEnemySendTimer = 0
 	
 	else -- client setup
@@ -359,7 +359,7 @@ function game:update(dt)
 		dx, dy = self.player:update(dt)
 		
 		if dx ~= 0 or dy ~= 0 then
-			if self.lastSendTimer > .5 then
+			if self.lastSendTimer > .2 then
 				self.lastSendTimer = 0
 				self:sendMove()
 			end

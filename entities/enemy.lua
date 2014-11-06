@@ -45,7 +45,8 @@ function Enemy:clientUpdate()
 				local timeLeft = math.abs(game.timer-game.timerDelay - timeSent)
 				--error(timeLeft)
 				-- the .5 is a cheap fix but it works
-				tween(.5, self, {x = x, y = y}, 'linear', function()
+				-- the time should be the same as the server's enemySendInterval
+				tween(1, self, {x = x, y = y}, 'linear', function()
 					self.tween = false
 				end)
 				self.tween = true
