@@ -1,0 +1,7 @@
+Dungeon-crawling RPG
+Binding of Isaac-like rooms (no scrolling)
+2 Player Online
+Host moves between rooms, other person follows
+
+Pre-built rooms
+Randomly generated floors (room placement)
